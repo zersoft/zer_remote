@@ -42,6 +42,23 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
   }
 }
 
+const VK_MAP = {
+  'Backspace': 0x08, 'Tab': 0x09, 'Enter': 0x0D, 'Shift': 0x10, 'Control': 0x11,
+  'Alt': 0x12, 'Pause': 0x13, 'CapsLock': 0x14, 'Escape': 0x1B, ' ': 0x20, 'Space': 0x20,
+  'PageUp': 0x21, 'PageDown': 0x22, 'End': 0x23, 'Home': 0x24,
+  'ArrowLeft': 0x25, 'ArrowUp': 0x26, 'ArrowRight': 0x27, 'ArrowDown': 0x28,
+  'Insert': 0x2D, 'Delete': 0x2E,
+  'F1': 0x70, 'F2': 0x71, 'F3': 0x72, 'F4': 0x73, 'F5': 0x74, 'F6': 0x75,
+  'F7': 0x76, 'F8': 0x77, 'F9': 0x78, 'F10': 0x79, 'F11': 0x7A, 'F12': 0x7B
+};
+
+function getVkCode(key) {
+  if (!key) return 0;
+  if (VK_MAP[key]) return VK_MAP[key];
+  if (key.length === 1) return key.toUpperCase().charCodeAt(0);
+  return 0;
+}
+
 function executeWinOSInput(type, data) {
   if (process.platform !== 'win32' || !psInputWorker || !psInputWorker.stdin) return;
 
@@ -53,22 +70,21 @@ function executeWinOSInput(type, data) {
       const psCmd = `$sw=[WinInput]::GetSystemMetrics(0);$sh=[WinInput]::GetSystemMetrics(1);[WinInput]::SetCursorPos([math]::Round(${xRatio}*$sw),[math]::Round(${yRatio}*$sh));`;
       psInputWorker.stdin.write(psCmd + "\n");
 
-      if (type === 'click' || type === 'mousedown') {
+      if (type === 'mousedown') {
         const flag = data.button === 2 ? '0x0008' : '0x0002';
         psInputWorker.stdin.write(`[WinInput]::mouse_event(${flag}, 0, 0, 0, 0)\n`);
-      }
-      if (type === 'click' || type === 'mouseup') {
+      } else if (type === 'mouseup') {
         const flag = data.button === 2 ? '0x0010' : '0x0004';
         psInputWorker.stdin.write(`[WinInput]::mouse_event(${flag}, 0, 0, 0, 0)\n`);
-      }
-      if (type === 'contextmenu') {
+      } else if (type === 'contextmenu') {
         psInputWorker.stdin.write(`[WinInput]::mouse_event(0x0008, 0, 0, 0, 0)\n`);
         psInputWorker.stdin.write(`[WinInput]::mouse_event(0x0010, 0, 0, 0, 0)\n`);
       }
-    } else if (type === 'keydown' && data.key) {
-      if (data.key.length === 1) {
-        const code = data.key.toUpperCase().charCodeAt(0);
-        psInputWorker.stdin.write(`[WinInput]::keybd_event(${code}, 0, 0, 0)\n`);
+    } else if ((type === 'keydown' || type === 'keyup') && data.key) {
+      const vk = getVkCode(data.key);
+      if (vk > 0) {
+        const flags = type === 'keyup' ? 2 : 0;
+        psInputWorker.stdin.write(`[WinInput]::keybd_event(${vk}, 0, ${flags}, 0)\n`);
       }
     }
   } catch (err) {

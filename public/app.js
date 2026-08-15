@@ -879,22 +879,6 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
     // Fallback for standalone Node environment
     executeLocalWinInput(type, data);
     socket.emit('execute-host-os-input', { type, data });
-
-    // Show virtual pointer feedback on host screen
-    if (elVirtualPointer) {
-      elVirtualPointer.classList.remove('hidden');
-      const stageRect = document.getElementById('screen-stage').getBoundingClientRect();
-      const xPx = data.x * stageRect.width;
-      const yPx = data.y * stageRect.height;
-
-      elVirtualPointer.style.left = `${xPx}px`;
-      elVirtualPointer.style.top = `${yPx}px`;
-
-      if (type === 'click' || type === 'mousedown') {
-        elVirtualPointer.classList.add('active');
-        setTimeout(() => elVirtualPointer.classList.remove('active'), 200);
-      }
-    }
   });
 
   // ==========================================================================

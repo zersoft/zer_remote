@@ -699,11 +699,81 @@
     });
   }
 
+  // Initialize Local Windows OS Input Automation in Node/Electron environment
+  let localPsWorker = null;
+  if (typeof require !== 'undefined') {
+    try {
+      const { spawn } = require('child_process');
+      if (typeof process !== 'undefined' && process.platform === 'win32') {
+        localPsWorker = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', '-'], {
+          stdio: ['pipe', 'ignore', 'ignore']
+        });
+        const initScript = `
+$signature = @"
+using System;
+using System.Runtime.InteropServices;
+
+public class WinInput {
+    [DllImport("user32.dll")]
+    public static extern bool SetCursorPos(int X, int Y);
+
+    [DllImport("user32.dll")]
+    public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    public static extern int GetSystemMetrics(int nIndex);
+}
+"@
+Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
+`;
+        localPsWorker.stdin.write(initScript + "\n");
+      }
+    } catch (err) {
+      console.warn('Local PowerShell worker initialization skipped:', err);
+    }
+  }
+
+  function executeLocalWinInput(type, data) {
+    if (!localPsWorker || !localPsWorker.stdin) return;
+    try {
+      if (type === 'mousemove' || type === 'click' || type === 'mousedown' || type === 'mouseup' || type === 'contextmenu') {
+        const xRatio = Math.max(0, Math.min(1, data.x || 0));
+        const yRatio = Math.max(0, Math.min(1, data.y || 0));
+        const psCmd = `$sw=[WinInput]::GetSystemMetrics(0);$sh=[WinInput]::GetSystemMetrics(1);[WinInput]::SetCursorPos([math]::Round(${xRatio}*$sw),[math]::Round(${yRatio}*$sh));`;
+        localPsWorker.stdin.write(psCmd + "\n");
+
+        if (type === 'click' || type === 'mousedown') {
+          const flag = data.button === 2 ? '0x0008' : '0x0002';
+          localPsWorker.stdin.write(`[WinInput]::mouse_event(${flag}, 0, 0, 0, 0)\n`);
+        }
+        if (type === 'click' || type === 'mouseup') {
+          const flag = data.button === 2 ? '0x0010' : '0x0004';
+          localPsWorker.stdin.write(`[WinInput]::mouse_event(${flag}, 0, 0, 0, 0)\n`);
+        }
+        if (type === 'contextmenu') {
+          localPsWorker.stdin.write(`[WinInput]::mouse_event(0x0008, 0, 0, 0, 0)\n`);
+          localPsWorker.stdin.write(`[WinInput]::mouse_event(0x0010, 0, 0, 0, 0)\n`);
+        }
+      } else if (type === 'keydown' && data.key) {
+        if (data.key.length === 1) {
+          const code = data.key.toUpperCase().charCodeAt(0);
+          localPsWorker.stdin.write(`[WinInput]::keybd_event(${code}, 0, 0, 0)\n`);
+        }
+      }
+    } catch (e) {
+      console.error('Local OS Input Error:', e);
+    }
+  }
+
   // Host receives Remote Input Events & Executes Native Windows OS Control
   socket.on('remote-input', ({ type, data, senderId }) => {
     if (!isHost) return;
 
     // Trigger local native Windows OS input control via user32.dll
+    executeLocalWinInput(type, data);
     socket.emit('execute-host-os-input', { type, data });
 
     // Show virtual pointer feedback on host screen

@@ -71,6 +71,11 @@ function executeWinOSInput(type, data) {
         psInputWorker.stdin.write(`[WinInput]::keybd_event(${code}, 0, 0, 0)\n`);
       }
     }
+  } catch (err) {
+    console.error('OS Input execution error:', err);
+  }
+}
+
 // Local Windows Agent HTTP Endpoint on port 3001 for browser-to-native OS control
 if (process.platform === 'win32') {
   try {

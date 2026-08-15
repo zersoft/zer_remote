@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <link rel="stylesheet" href="styles.css?v=2.6.6">
+  <link rel="stylesheet" href="styles.css?v=2.7.0">
 </head>
 <body class="dark-theme">
   <!-- Top App Navigation -->
@@ -358,7 +358,10 @@
           <i class="fa-solid fa-lock"></i>
         </button>
         <button class="tb-btn" id="tb-ctrl-alt-del" title="Ctrl+Alt+Del Gönder">
-          <i class="fa-solid fa-keyboard"></i> <span>CAD</span>
+          <i class="fa-solid fa-desktop"></i> <span>CAD</span>
+        </button>
+        <button class="tb-btn" id="tb-toggle-keyboard" title="Sanal Klavyeyi Aç">
+          <i class="fa-solid fa-keyboard"></i> <span>Klavye</span>
         </button>
       </div>
 
@@ -392,6 +395,7 @@
     <div class="screen-stage" id="screen-stage">
       <video id="remote-video" autoplay playsinline></video>
       <canvas id="input-canvas"></canvas>
+      <input type="text" id="mobile-virtual-keyboard-input" style="position:absolute; top:-9999px; left:-9999px; opacity:0;" autocomplete="off" />
       
       <!-- Virtual Pointer for Visual Feedback -->
       <div class="virtual-pointer hidden" id="virtual-pointer">
@@ -536,6 +540,6 @@
   <!-- Socket.IO Client Library -->
   <script src="/socket.io/socket.io.js"></script>
   <!-- Main Application Script -->
-  <script src="app.js?v=2.6.6"></script>
+  <script src="app.js?v=2.7.0"></script>
 </body>
 </html>

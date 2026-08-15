@@ -1210,3 +1210,74 @@ body.light-theme .btn-modal-close {
 .hidden {
   display: none !important;
 }
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE STYLES
+   ========================================================================== */
+
+@media (max-width: 992px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 16px;
+  }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+  }
+  .nav-item {
+    white-space: nowrap;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .drawer-panel {
+    width: 100vw;
+    right: -100vw;
+  }
+  .remote-toolbar {
+    top: 10px;
+    width: 96vw;
+    max-width: 96vw;
+    padding: 6px 10px;
+    border-radius: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tb-btn span {
+    display: none;
+  }
+  .tb-btn {
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .toast-container {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+  }
+  .toast {
+    min-width: unset;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 16px;
+  }
+  .device-id-display {
+    font-size: 24px;
+    letter-spacing: 2px;
+  }
+}

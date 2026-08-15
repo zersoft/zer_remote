@@ -621,18 +621,77 @@
   function setupInputForwarding() {
     if (!elInputCanvas) return;
 
-    // Normalize coordinates (0.0 to 1.0)
+    // Normalize coordinates (0.0 to 1.0) for both Mouse & Touch Events
     function getNormalizedCoords(e) {
       const rect = elInputCanvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
+      const touch = (e.touches && e.touches[0]) ? e.touches[0] : ((e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : e);
+      const x = (touch.clientX - rect.left) / rect.width;
+      const y = (touch.clientY - rect.top) / rect.height;
       return {
         x: Math.max(0, Math.min(1, x)),
         y: Math.max(0, Math.min(1, y)),
-        clientX: e.clientX,
-        clientY: e.clientY
+        clientX: touch.clientX,
+        clientY: touch.clientY
       };
     }
+
+    // Mobile Touch Event Support (iOS & Android Touchscreen Remote Control)
+    let touchStartTime = 0;
+
+    elInputCanvas.addEventListener('touchstart', (e) => {
+      if (!activeSessionId || isHost) return;
+      touchStartTime = Date.now();
+      const coords = getNormalizedCoords(e);
+
+      socket.emit('remote-input', {
+        sessionId: activeSessionId,
+        type: 'mousemove',
+        data: { x: coords.x, y: coords.y }
+      });
+
+      socket.emit('remote-input', {
+        sessionId: activeSessionId,
+        type: 'mousedown',
+        data: { x: coords.x, y: coords.y, button: 0 }
+      });
+    }, { passive: true });
+
+    elInputCanvas.addEventListener('touchmove', (e) => {
+      if (!activeSessionId || isHost) return;
+      const coords = getNormalizedCoords(e);
+
+      socket.emit('remote-input', {
+        sessionId: activeSessionId,
+        type: 'mousemove',
+        data: { x: coords.x, y: coords.y }
+      });
+    }, { passive: true });
+
+    elInputCanvas.addEventListener('touchend', (e) => {
+      if (!activeSessionId || isHost) return;
+      const coords = getNormalizedCoords(e);
+      const duration = Date.now() - touchStartTime;
+
+      socket.emit('remote-input', {
+        sessionId: activeSessionId,
+        type: 'mouseup',
+        data: { x: coords.x, y: coords.y, button: duration > 600 ? 2 : 0 }
+      });
+
+      if (duration <= 600) {
+        socket.emit('remote-input', {
+          sessionId: activeSessionId,
+          type: 'click',
+          data: { x: coords.x, y: coords.y, button: 0 }
+        });
+      } else {
+        socket.emit('remote-input', {
+          sessionId: activeSessionId,
+          type: 'contextmenu',
+          data: { x: coords.x, y: coords.y }
+        });
+      }
+    }, { passive: true });
 
     // Mouse Move
     elInputCanvas.addEventListener('mousemove', (e) => {
@@ -696,6 +755,30 @@
         type: 'keyup',
         data: { key: e.key, code: e.code }
       });
+    });
+  }
+
+  // Mobile Virtual Keyboard Handler
+  const elTbToggleKeyboard = document.getElementById('tb-toggle-keyboard');
+  const elMobileKeyboardInput = document.getElementById('mobile-virtual-keyboard-input');
+
+  if (elTbToggleKeyboard && elMobileKeyboardInput) {
+    elTbToggleKeyboard.addEventListener('click', () => {
+      elMobileKeyboardInput.focus();
+      showToast('Sanal klavye aktif edildi. Yazmaya başlayabilirsiniz.', 'info');
+    });
+
+    elMobileKeyboardInput.addEventListener('input', (e) => {
+      if (!activeSessionId || isHost) return;
+      const char = e.data;
+      if (char) {
+        socket.emit('remote-input', {
+          sessionId: activeSessionId,
+          type: 'keydown',
+          data: { key: char, code: `Key${char.toUpperCase()}` }
+        });
+      }
+      elMobileKeyboardInput.value = '';
     });
   }
 

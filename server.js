@@ -46,14 +46,12 @@ function executeWinOSInput(type, data) {
   if (process.platform !== 'win32' || !psInputWorker || !psInputWorker.stdin) return;
 
   try {
-    const screenW = 1920;
-    const screenH = 1080;
-
     if (type === 'mousemove' || type === 'click' || type === 'mousedown' || type === 'mouseup' || type === 'contextmenu') {
-      const targetX = Math.round((data.x || 0) * screenW);
-      const targetY = Math.round((data.y || 0) * screenH);
+      const xRatio = Math.max(0, Math.min(1, data.x || 0));
+      const yRatio = Math.max(0, Math.min(1, data.y || 0));
 
-      psInputWorker.stdin.write(`[WinInput]::SetCursorPos(${targetX}, ${targetY})\n`);
+      const psCmd = `$sw=[WinInput]::GetSystemMetrics(0);$sh=[WinInput]::GetSystemMetrics(1);[WinInput]::SetCursorPos([math]::Round(${xRatio}*$sw),[math]::Round(${yRatio}*$sh));`;
+      psInputWorker.stdin.write(psCmd + "\n");
 
       if (type === 'click' || type === 'mousedown') {
         const flag = data.button === 2 ? '0x0008' : '0x0002';
@@ -69,7 +67,7 @@ function executeWinOSInput(type, data) {
       }
     } else if (type === 'keydown' && data.key) {
       if (data.key.length === 1) {
-        const code = data.key.charCodeAt(0);
+        const code = data.key.toUpperCase().charCodeAt(0);
         psInputWorker.stdin.write(`[WinInput]::keybd_event(${code}, 0, 0, 0)\n`);
       }
     }

@@ -470,6 +470,7 @@
   // ==========================================================================
 
   let connectionApprovalTimeout = null;
+  let currentConnectedTargetId = '';
 
   if (elConnectForm) {
     elConnectForm.addEventListener('submit', (e) => {
@@ -480,6 +481,8 @@
       if (!targetId || !password) {
         return showToast('Lütfen geçerli ID ve Parola girin.', 'error');
       }
+
+      currentConnectedTargetId = targetId;
 
       if (elBtnConnect) {
         elBtnConnect.disabled = true;
@@ -520,10 +523,14 @@
   }
 
   // Viewer receives approval & opens remote stage view
-  socket.on('connection-established', ({ sessionId, hostDeviceName }) => {
+  socket.on('connection-established', ({ sessionId, hostDeviceName, hostDeviceId }) => {
     if (connectionApprovalTimeout) clearTimeout(connectionApprovalTimeout);
     showToast(`${hostDeviceName || 'Uzak Masaüstü'} bağlantısı kabul edildi!`, 'success');
-    showRemoteStage(hostDeviceName || 'Uzak Masaüstü');
+
+    const targetIdStr = currentConnectedTargetId || hostDeviceId || '';
+    const displayTitle = targetIdStr ? `ID: ${targetIdStr}` : (hostDeviceName || 'Uzak Masaüstü');
+
+    showRemoteStage(displayTitle);
     if (elBtnConnect) {
       elBtnConnect.disabled = false;
       elBtnConnect.innerHTML = '<i class="fa-solid fa-plug"></i> Uzak Masaüstüne Bağlan';

@@ -249,6 +249,7 @@ io.on('connection', (socket) => {
       // Notify ONLY the Viewer of approval (NOT back to host!)
       io.to(session.viewerSocketId).emit('connection-established', {
         sessionId,
+        hostDeviceId: session.hostDeviceId,
         hostDeviceName: hostData ? hostData.deviceName : 'Uzak Masaüstü'
       });
       console.log(`[Session Accepted] ${sessionId}`);

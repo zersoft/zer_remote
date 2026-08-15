@@ -371,6 +371,40 @@ io.on('connection', (socket) => {
   });
 
   // 13. Disconnect Handling
+  // 10. Wake-on-LAN (WoL) Remote Computer Waking Engine
+  socket.on('wake-on-lan', ({ macAddress, broadcastAddr }, callback) => {
+    try {
+      const dgram = require('dgram');
+      const cleanMac = (macAddress || '').replace(/[^0-9A-Fa-f]/g, '');
+      if (cleanMac.length !== 12) {
+        if (typeof callback === 'function') callback({ success: false, message: 'Geçersiz MAC adresi (Örn: 00:1A:2B:3C:4D:5E).' });
+        return;
+      }
+
+      const magicPacket = Buffer.alloc(102);
+      for (let i = 0; i < 6; i++) magicPacket[i] = 0xff;
+      const macBytes = Buffer.from(cleanMac, 'hex');
+      for (let i = 0; i < 16; i++) macBytes.copy(magicPacket, 6 + i * 6);
+
+      const udpSocket = dgram.createSocket('udp4');
+      udpSocket.once('listening', () => udpSocket.setBroadcast(true));
+
+      const targetPort = 9;
+      const targetIp = broadcastAddr || '255.255.255.255';
+
+      udpSocket.send(magicPacket, 0, magicPacket.length, targetPort, targetIp, (err) => {
+        udpSocket.close();
+        if (err) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Wake-on-LAN gönderilemedi: ' + err.message });
+        } else {
+          if (typeof callback === 'function') callback({ success: true, message: `Wake-on-LAN sihirli paketi (${macAddress}) ağa başarıyla gönderildi!` });
+        }
+      });
+    } catch (e) {
+      if (typeof callback === 'function') callback({ success: false, message: e.message });
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`[Socket Disconnected] ID: ${socket.id}`);
 

@@ -177,32 +177,45 @@
   // 1. INITIALIZATION & SOCKET HANDLERS
   // ==========================================================================
 
-  // Helper to generate local fallback credentials immediately
+  // Persistent Host Credentials across restarts/refreshes
   function generateLocalCredentials() {
-    if (!myDeviceId || myDeviceId === '000 000 000') {
+    let savedId = localStorage.getItem('zer_permanent_host_id');
+    let savedPass = localStorage.getItem('zer_permanent_host_pass');
+
+    if (!savedId) {
       const raw = Math.floor(100000000 + Math.random() * 900000000).toString();
-      myDeviceId = `${raw.substring(0, 3)} ${raw.substring(3, 6)} ${raw.substring(6, 9)}`;
+      savedId = `${raw.substring(0, 3)} ${raw.substring(3, 6)} ${raw.substring(6, 9)}`;
+      localStorage.setItem('zer_permanent_host_id', savedId);
+    }
+    if (!savedPass) {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       let pass = '';
       for (let i = 0; i < 6; i++) {
         pass += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      myPassword = pass;
-
-      if (elMyDeviceId) elMyDeviceId.textContent = myDeviceId;
-      if (elMyPassword) elMyPassword.textContent = myPassword;
+      savedPass = pass;
+      localStorage.setItem('zer_permanent_host_pass', savedPass);
     }
+
+    myDeviceId = savedId;
+    myPassword = savedPass;
+
+    if (elMyDeviceId) elMyDeviceId.textContent = myDeviceId;
+    if (elMyPassword) elMyPassword.textContent = myPassword;
   }
 
   function registerHost() {
     generateLocalCredentials();
-    const savedName = localStorage.getItem('zer_device_name') || `PC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const savedName = localStorage.getItem('zer_device_name') || `PC-${myDeviceId.replace(/\s+/g, '').substring(0, 4)}`;
     socket.emit('register-host', { requestedId: myDeviceId, password: myPassword, deviceName: savedName }, (res) => {
       if (res && res.success) {
         myDeviceId = res.deviceId;
         myPassword = res.password;
         myDeviceName = res.deviceName;
         
+        localStorage.setItem('zer_permanent_host_id', myDeviceId);
+        localStorage.setItem('zer_permanent_host_pass', myPassword);
+
         if (elMyDeviceId) elMyDeviceId.textContent = myDeviceId;
         if (elMyPassword) elMyPassword.textContent = myPassword;
       }
@@ -237,8 +250,9 @@
       socket.emit('refresh-password', (res) => {
         if (res && res.success) {
           myPassword = res.password;
+          localStorage.setItem('zer_permanent_host_pass', myPassword);
           if (elMyPassword) elMyPassword.textContent = myPassword;
-          showToast('Yeni güvenlik parolası üretildi.', 'info');
+          showToast('Yeni kalıcı güvenlik parolası üretildi ve kaydedildi.', 'info');
         }
       });
     });
@@ -1254,13 +1268,52 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
   // 8. SAVED DEVICES & HISTORY STORAGE
   // ==========================================================================
 
-  function saveToRecentDevices(id, name) {
+  function saveToRecentDevices(id, name, password = '') {
     let saved = JSON.parse(localStorage.getItem('zer_saved_devices') || '[]');
+    const existing = saved.find(item => item.id === id);
+    const passToSave = password || (existing ? existing.password : (elRemotePassInput ? elRemotePassInput.value.trim() : ''));
+
     saved = saved.filter(item => item.id !== id);
-    saved.unshift({ id, name: name || `Cihaz ${id}`, lastConnected: new Date().toLocaleDateString('tr-TR') });
-    localStorage.setItem('zer_saved_devices', JSON.stringify(saved.slice(0, 8)));
+    saved.unshift({
+      id,
+      name: name || `Cihaz ${id}`,
+      password: passToSave,
+      lastConnected: new Date().toLocaleDateString('tr-TR')
+    });
+    localStorage.setItem('zer_saved_devices', JSON.stringify(saved.slice(0, 10)));
     renderRecentDevices();
   }
+
+  window.autoConnectDevice = function(id, password) {
+    if (elRemoteIdInput) elRemoteIdInput.value = id;
+    if (elRemotePassInput) elRemotePassInput.value = password || '';
+    const tabRemoteControl = document.querySelector('[data-tab=remote-control]');
+    if (tabRemoteControl) tabRemoteControl.click();
+
+    if (password) {
+      showToast(`${id} cihazına tek tıkla otomatik bağlanılıyor...`, 'info');
+      setTimeout(() => {
+        if (elConnectForm) elConnectForm.requestSubmit();
+      }, 200);
+    } else {
+      showToast(`${id} cihazı dolduruldu. Lütfen parolayı girin.`, 'info');
+    }
+  };
+
+  window.triggerWakeOnLan = function(macAddress) {
+    if (!macAddress) {
+      const mac = prompt('Lütfen uyandırılacak bilgisayarın MAC adresini girin (Örn: 00:1A:2B:3C:4D:5E):');
+      if (!mac) return;
+      macAddress = mac;
+    }
+    socket.emit('wake-on-lan', { macAddress }, (res) => {
+      if (res && res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast((res && res.message) || 'Wake-on-LAN başarısız.', 'error');
+      }
+    });
+  };
 
   function renderRecentDevices() {
     const saved = JSON.parse(localStorage.getItem('zer_saved_devices') || '[]');
@@ -1275,9 +1328,9 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
     saved.forEach(device => {
       const tag = document.createElement('div');
       tag.className = 'quick-tag-item';
-      tag.innerHTML = `<i class="fa-solid fa-desktop"></i> ${device.id} (${device.name})`;
+      tag.innerHTML = `<i class="fa-solid fa-bolt text-warning"></i> ${device.id} (${device.name})`;
       tag.addEventListener('click', () => {
-        if (elRemoteIdInput) elRemoteIdInput.value = device.id;
+        autoConnectDevice(device.id, device.password);
       });
       elQuickTagsContainer.appendChild(tag);
     });
@@ -1292,15 +1345,20 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
         card.innerHTML = `
           <div class="d-flex align-items-center gap-3" style="display:flex; gap:12px; align-items:center;">
             <i class="fa-solid fa-desktop highlight-icon"></i>
-            <div>
-              <h4 style="font-size:16px;">${escapeHtml(device.name)}</h4>
-              <p style="font-family:var(--font-mono); color:var(--accent-cyan); font-size:14px;">ID: ${device.id}</p>
-              <small style="color:var(--text-dim);">Son Bağlantı: ${device.lastConnected}</small>
+            <div style="flex:1;">
+              <h4 style="font-size:16px; font-weight:700;">${escapeHtml(device.name)}</h4>
+              <p style="font-family:var(--font-mono); color:var(--accent-cyan); font-size:14px; font-weight:600;">ID: ${device.id}</p>
+              <small style="color:var(--text-dim);">Parola: ${device.password ? '•••••• (Kayıtlı)' : 'Kayıtlı Değil'}</small>
             </div>
           </div>
-          <button class="btn btn-accent btn-block mt-3" style="margin-top:14px;" onclick="document.getElementById('remote-id-input').value='${device.id}'; document.querySelector('[data-tab=remote-control]').click();">
-            <i class="fa-solid fa-plug"></i> Hızlı Bağlan
-          </button>
+          <div class="d-flex gap-2 mt-3" style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-accent btn-block" style="flex:1;" onclick="autoConnectDevice('${device.id}', '${device.password || ''}')">
+              <i class="fa-solid fa-bolt"></i> Tek Tıkla Bağlan
+            </button>
+            <button class="btn btn-secondary" title="Wake-on-LAN ile Bilgisayarı Uykudan Uyandır" onclick="triggerWakeOnLan()">
+              <i class="fa-solid fa-moon"></i>
+            </button>
+          </div>
         `;
         savedContainer.appendChild(card);
       });

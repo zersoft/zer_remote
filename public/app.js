@@ -498,15 +498,23 @@
         isHost = false;
         saveToRecentDevices(targetId, res.hostDeviceName);
 
-        showToast('Bağlantı kuruluyor, onay bekleniyor...', 'info');
-        showRemoteStage(res.hostDeviceName || targetId);
+        showToast('Parola doğrulandı. Ev sahibi bilgisayardan onay bekleniyor...', 'info');
+        if (elBtnConnect) {
+          elBtnConnect.disabled = true;
+          elBtnConnect.innerHTML = '<i class="fa-solid fa-clock fa-spin"></i> Ev Sahibi Onayı Bekleniyor...';
+        }
       });
     });
   }
 
-  // Viewer receives approval & creates WebRTC Answer
+  // Viewer receives approval & opens remote stage view
   socket.on('connection-established', ({ sessionId, hostDeviceName }) => {
     showToast(`${hostDeviceName || 'Uzak Masaüstü'} bağlantısı kabul edildi!`, 'success');
+    showRemoteStage(hostDeviceName || 'Uzak Masaüstü');
+    if (elBtnConnect) {
+      elBtnConnect.disabled = false;
+      elBtnConnect.innerHTML = '<i class="fa-solid fa-plug"></i> Uzak Masaüstüne Bağlan';
+    }
   });
 
   socket.on('connection-rejected', ({ reason }) => {

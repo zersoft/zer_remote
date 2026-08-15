@@ -1,0 +1,12 @@
+# Disable Directory Indexing (Dizin Listelemeyi Kapat)
+Options -Indexes
+
+# Prevent access to source files, zips, and configs if Node.js app is stopped
+<FilesMatch "\.(json|zip|log|bat|md|env|lock)$">
+  Require all denied
+</FilesMatch>
+
+# Allow public downloads
+<FilesMatch "\.(exe)$">
+  Require all granted
+</FilesMatch>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZerRemote - Güvenli Uzak Erişim ve Masaüstü Kontrolü</title>
+  
+  <!-- Modern Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <link rel="stylesheet" href="styles.css?v=2.5.7">
+</head>
+<body class="dark-theme">
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-desktop"></i>
+        <span class="pulse-ring"></span>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">ZER<span class="highlight">REMOTE</span></span>
+        <span class="brand-tag">v2.5 Enterprise</span>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="status-indicator online">
+        <span class="status-dot"></span>
+        <span class="status-text" id="server-status-text">Sunucu Bağlı</span>
+      </div>
+      <div class="protocol-badge">
+        <i class="fa-solid fa-shield-halved"></i> WebRTC P2P (AES-256)
+      </div>
+      <div class="ping-badge" id="header-ping">
+        <i class="fa-solid fa-bolt"></i> <span id="ping-val">12</span> ms
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a href="/downloads/zer-remote-x64.exe" download class="btn btn-download-header" id="btn-header-download" title="Windows İstemcisini İndir">
+        <i class="fa-brands fa-windows text-cyan"></i> <span>Masaüstü İndir (.exe)</span>
+      </a>
+      <button class="icon-btn" id="btn-toggle-theme" title="Tema Değiştir">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+      <button class="icon-btn" id="btn-open-settings" title="Ayarlar">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="app-container">
+    <!-- Navigation Sidebar -->
+    <aside class="sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="remote-control">
+          <i class="fa-solid fa-display"></i>
+          <span>Uzak Kontrol</span>
+        </button>
+        <button class="nav-item" data-tab="share-screen">
+          <i class="fa-solid fa-share-nodes"></i>
+          <span>Ekran Paylaşımı</span>
+        </button>
+        <button class="nav-item" data-tab="saved-devices">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>Kayıtlı Cihazlar</span>
+        </button>
+        <button class="nav-item" data-tab="session-history">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Geçmiş Oturumlar</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-card">
+          <div class="user-avatar">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <div class="user-info">
+            <span class="user-name">Yerel İstemci</span>
+            <span class="user-ip" id="user-local-ip">192.168.1.105</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      <!-- TAB 1: REMOTE CONTROL DASHBOARD -->
+      <section class="tab-content active" id="tab-remote-control">
+        <div class="dashboard-grid">
+          
+          <!-- Card 1: Allow Remote Control (Host Info) -->
+          <div class="card glass-card host-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-laptop-house highlight-icon"></i>
+                <div>
+                  <h3>Bu Cihazın Bilgileri</h3>
+                  <p>Bağlanmak isteyen kişiyle bu ID ve Parolayı paylaşın.</p>
+                </div>
+              </div>
+              <span class="badge badge-ready" id="host-state-badge">
+                <i class="fa-solid fa-circle-check"></i> Hazır
+              </span>
+            </div>
+
+            <div class="card-body">
+              <!-- ID Display Box -->
+              <div class="credential-box">
+                <label>BAĞLANTI ID'NİZ</label>
+                <div class="id-display-container">
+                  <span class="id-digits" id="my-device-id">000 000 000</span>
+                  <button class="copy-btn" id="btn-copy-id" title="ID'yi Kopyala">
+                    <i class="fa-regular fa-copy"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Password Display Box -->
+              <div class="credential-box">
+                <label>GEÇİCİ GÜVENLİK PAROLASI</label>
+                <div class="password-display-container">
+                  <span class="password-text" id="my-password">------</span>
+                  <div class="pass-actions">
+                    <button class="icon-btn-sm" id="btn-refresh-pass" title="Yeni Parola Üret">
+                      <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button class="copy-btn" id="btn-copy-pass" title="Parolayı Kopyala">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Host Control Options -->
+              <div class="host-controls">
+                <button class="btn btn-primary btn-block" id="btn-start-host">
+                  <i class="fa-solid fa-play"></i> Ekran Paylaşımını Başlat
+                </button>
+                
+                <div class="toggle-option">
+                  <label for="auto-accept-toggle" class="toggle-label">
+                    <span>Otomatik Bağlantı Kabulü</span>
+                    <small>Doğru parola girildiğinde onay sormadan bağlanır</small>
+                  </label>
+                  <input type="checkbox" id="auto-accept-toggle" checked>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Connect to Remote PC (Viewer Form) -->
+          <div class="card glass-card connect-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-network-wired highlight-icon"></i>
+                <div>
+                  <h3>Uzak Bilgisayara Bağlan</h3>
+                  <p>Erişmek istediğiniz cihazın ID ve Parolasını girin.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <form id="connect-form" autocomplete="off">
+                <div class="form-group">
+                  <label for="remote-id-input"><i class="fa-solid fa-fingerprint"></i> Uzak Cihaz ID</label>
+                  <input type="text" id="remote-id-input" placeholder="Örn: 842 190 312" maxlength="11" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="remote-pass-input"><i class="fa-solid fa-key"></i> Güvenlik Parolası</label>
+                  <input type="password" id="remote-pass-input" placeholder="6 Haneli Parola" maxlength="10" required>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-accent btn-block" id="btn-connect">
+                    <i class="fa-solid fa-plug"></i> Uzak Masaüstüne Bağlan
+                  </button>
+                </div>
+              </form>
+
+              <!-- Quick Connect / Saved Items -->
+              <div class="quick-connect-section">
+                <h4><i class="fa-solid fa-clock-history"></i> Hızlı Bağlantı</h4>
+                <div class="quick-tags" id="quick-tags-container">
+                  <!-- JS populated tags -->
+                  <div class="quick-tag-empty">Henüz kaydedilmiş bağlantı yok.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: System & Security Status -->
+          <div class="card glass-card status-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-solid fa-chart-line highlight-icon"></i>
+                <div>
+                  <h3>Sistem ve Güvenlik Durumu</h3>
+                  <p>Gerçek zamanlı ağ ve performans metrikleri</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="metrics-grid">
+                <div class="metric-item">
+                  <span class="metric-label">Gecikme (Latency)</span>
+                  <span class="metric-value green" id="metric-latency">14 ms</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Akış Hızı (FPS)</span>
+                  <span class="metric-value blue" id="metric-fps">60 FPS</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Bant Genişliği</span>
+                  <span class="metric-value purple" id="metric-bandwidth">1.4 MB/s</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">Şifreleme Metodu</span>
+                  <span class="metric-value gold">DTLS / SRTP</span>
+                </div>
+              </div>
+            </div>
+          <!-- Card 4: Download Windows Desktop Client -->
+          <div class="card glass-card download-card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa-brands fa-windows highlight-icon text-cyan"></i>
+                <div>
+                  <h3>Windows Masaüstü İstemcisi (.exe)</h3>
+                  <p>Kurulum gerektirmeyen AnyDesk stili taşınabilir uygulama</p>
+                </div>
+              </div>
+              <span class="badge badge-ready">
+                <i class="fa-solid fa-cloud-arrow-down"></i> Taşınabilir (.exe)
+              </span>
+            </div>
+            <div class="card-body">
+              <p class="download-desc">
+                Uzak bilgisayarlara doğrudan bağlanmak veya bu bilgisayarı uzaktan erişime açmak için Windows istemcisini indirin. <strong>Sıfır Kurulum, Çift Tıkla Çalıştır!</strong>
+              </p>
+
+              <div class="download-buttons-grid mt-3">
+                <a href="/downloads/zer-remote-x64.exe" class="btn btn-dl-primary btn-block" download>
+                  <i class="fa-brands fa-windows"></i> Windows (Intel / AMD x64) İndir (.exe)
+                </a>
+                <a href="/downloads/zer-remote-arm64.exe" class="btn btn-dl-secondary btn-block mt-2" download>
+                  <i class="fa-solid fa-microchip"></i> Windows ARM64 İndir (.exe)
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 2: EKRAN PAYLAŞIMI DETAY -->
+      <section class="tab-content" id="tab-share-screen">
+        <div class="card glass-card">
+          <h2><i class="fa-solid fa-share-nodes"></i> Ekran Paylaşım Modu</h2>
+          <p>Bu bölümden yayındaki ekranınızı yönetebilir, bağlı istemcileri izleyebilir veya erişim izinlerini düzenleyebilirsiniz.</p>
+          <div class="share-status-box mt-4">
+            <div class="host-preview-wrapper" id="host-preview-wrapper">
+              <video id="host-local-video" autoplay playsinline muted></video>
+              <div class="no-stream-placeholder" id="no-stream-placeholder">
+                <i class="fa-solid fa-video-slash"></i>
+                <p>Şu anda canlı ekran yayını başlatılmadı.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: KAYITLI CİHAZLAR -->
+      <section class="tab-content" id="tab-saved-devices">
+        <div class="card glass-card">
+          <div class="section-header-flex">
+            <div>
+              <h2><i class="fa-solid fa-book-bookmark"></i> Adres Defteri ve Kayıtlı Cihazlar</h2>
+              <p>Sık eriştiğiniz bilgisayarları kaydedin ve tek tıkla bağlanın.</p>
+            </div>
+            <button class="btn btn-secondary" id="btn-add-device-modal">
+              <i class="fa-solid fa-plus"></i> Yeni Cihaz Ekle
+            </button>
+          </div>
+
+          <div class="devices-grid" id="saved-devices-container">
+            <!-- Dynamically populated saved device cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: OTURUM GEÇMİŞİ -->
+      <section class="tab-content" id="tab-session-history">
+        <div class="card glass-card">
+          <h2><i class="fa-solid fa-clock-rotate-left"></i> Oturum Geçmişi</h2>
+          <p>Daha önce gerçekleştirilen uzak erişim bağlantı kayıtları</p>
+          <div class="table-responsive mt-3">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cihaz Adı / ID</th>
+                  <th>Tarih & Saat</th>
+                  <th>Süre</th>
+                  <th>Veri Aktarımı</th>
+                  <th>Eylemler</th>
+                </tr>
+              </thead>
+              <tbody id="session-history-tbody">
+                <!-- JS Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- REMOTE DESKTOP FULL-SCREEN VIEWER OVERLAY (THE REMOTE STAGE) -->
+  <!-- ============================================================== -->
+  <div class="remote-viewport-overlay hidden" id="remote-viewport-overlay">
+    <!-- Top Floating Toolbar -->
+    <div class="remote-toolbar">
+      <div class="toolbar-drag-handle">
+        <i class="fa-solid fa-grip-vertical"></i>
+      </div>
+      
+      <div class="toolbar-group device-info-tag">
+        <i class="fa-solid fa-desktop text-accent"></i>
+        <span id="remote-session-title">Uzak Masaüstü: PC-8492</span>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Action Buttons -->
+      <div class="toolbar-group">
+        <button class="tb-btn" id="tb-fit-mode" title="Ekran Ölçekleme (Fit / 1:1 / Fill)">
+          <i class="fa-solid fa-expand"></i> <span>Sığdır</span>
+        </button>
+        <button class="tb-btn" id="tb-fullscreen" title="Tam Ekran Modu">
+          <i class="fa-solid fa-maximize"></i>
+        </button>
+        <button class="tb-btn" id="tb-screenshot" title="Ekran Görüntüsü Al">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <button class="tb-btn" id="tb-record" title="Oturum Kaydı (Başlat/Durdur)">
+          <i class="fa-solid fa-circle text-danger"></i> <span id="rec-status-text">Kaydet</span>
+        </button>
+        <button class="tb-btn" id="tb-lock-remote" title="Uzak Ekranı Kilitle">
+          <i class="fa-solid fa-lock"></i>
+        </button>
+        <button class="tb-btn" id="tb-ctrl-alt-del" title="Ctrl+Alt+Del Gönder">
+          <i class="fa-solid fa-keyboard"></i> <span>CAD</span>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button class="tb-btn" id="tb-toggle-chat" title="Sohbeti Aç/Kapat">
+          <i class="fa-solid fa-comments"></i>
+          <span class="badge-dot hidden" id="chat-unread-dot"></span>
+        </button>
+        <button class="tb-btn" id="tb-toggle-files" title="Dosya Transferi">
+          <i class="fa-solid fa-folder-open"></i>
+        </button>
+      </div>
+
+      <div class="toolbar-divider"></div>
+
+      <!-- Performance Metrics in Toolbar -->
+      <div class="toolbar-group metrics-tag">
+        <span><i class="fa-solid fa-bolt text-warning"></i> <span id="tb-ping">16</span>ms</span>
+        <span><i class="fa-solid fa-film text-info"></i> <span id="tb-fps">60</span>fps</span>
+      </div>
+
+      <!-- Disconnect Button -->
+      <button class="tb-btn btn-danger-tb" id="tb-disconnect" title="Bağlantıyı Kapat">
+        <i class="fa-solid fa-power-off"></i> <span>Bağlantıyı Kapat</span>
+      </button>
+    </div>
+
+    <!-- Remote Screen Video Container & Canvas Overlay -->
+    <div class="screen-stage" id="screen-stage">
+      <video id="remote-video" autoplay playsinline></video>
+      <canvas id="input-canvas"></canvas>
+      
+      <!-- Virtual Pointer for Visual Feedback -->
+      <div class="virtual-pointer hidden" id="virtual-pointer">
+        <div class="pointer-dot"></div>
+        <div class="pointer-ring"></div>
+        <span class="pointer-label" id="pointer-user-name">Uzak Kullanıcı</span>
+      </div>
+
+      <!-- Loading / Reconnecting Overlay inside Viewport -->
+      <div class="stage-loading-overlay hidden" id="stage-loading">
+        <div class="spinner"></div>
+        <h3 id="stage-loading-text">Uzak Masaüstüne Bağlanılıyor...</h3>
+      </div>
+    </div>
+
+    <!-- Sliding Chat Drawer -->
+    <div class="chat-drawer hidden" id="chat-drawer">
+      <div class="drawer-header">
+        <h4><i class="fa-solid fa-comments"></i> Uzak Masaüstü Sohbeti</h4>
+        <button class="icon-btn-sm" id="btn-close-chat"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="drawer-body chat-messages" id="chat-messages-container">
+        <div class="system-message">
+          <span>Güvenli sohbet kanalı oluşturuldu. İletilen mesajlar uçtan uca şifrelenir.</span>
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <form id="chat-form">
+          <input type="text" id="chat-input" placeholder="Mesajınızı yazın..." autocomplete="off">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Sliding File Transfer Drawer -->
+    <div class="file-drawer hidden" id="file-drawer">
+      <div class="drawer-header">
+        <h4><i class="fa-solid fa-folder-open"></i> Dosya Transfer Merkezi</h4>
+        <button class="icon-btn-sm" id="btn-close-files"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="drawer-body">
+        <div class="file-drop-zone" id="file-drop-zone">
+          <i class="fa-solid fa-cloud-arrow-up drop-icon"></i>
+          <p>Dosyaları buraya sürükleyip bırakın veya <span>dosya seçin</span></p>
+          <input type="file" id="file-input-element" class="hidden" multiple>
+        </div>
+
+        <div class="file-transfer-list" id="file-transfer-list">
+          <!-- File Transfer Items -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal: Incoming Connection Request (For Host) -->
+  <div class="modal-backdrop hidden" id="modal-incoming-connection">
+    <div class="modal-card">
+      <div class="modal-header">
+        <i class="fa-solid fa-shield-cat modal-icon warning"></i>
+        <h3>Gelen Bağlantı İsteği</h3>
+      </div>
+      <div class="modal-body">
+        <p><strong id="incoming-viewer-name">Uzak Kullanıcı</strong> bilgisayarınıza uzaktan erişim talebinde bulunuyor.</p>
+        <div class="connection-alert-box">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Onay verdiğinizde karşı taraf ekranınızı görebilecek ve fare/klavye kontrolü sağlayabilecektir.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-reject-incoming">Reddet</button>
+        <button class="btn btn-primary" id="btn-accept-incoming">Erişime İzin Ver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Download Desktop Application Options -->
+  <div class="modal-backdrop hidden" id="modal-download-app">
+    <div class="modal-card">
+      <div class="modal-header">
+        <i class="fa-brands fa-windows modal-icon text-cyan"></i>
+        <h3>ZerRemote Masaüstü İstemcisi İndir</h3>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Windows bilgisayarınızı uzaktan erişime açmak veya uzak cihazlara bağlanmak için sisteminize uygun <strong>.exe</strong> paketini indirin:</p>
+        <div class="download-modal-options">
+          <a href="/downloads/zer-remote-x64.exe" class="btn btn-dl-primary btn-block" download>
+            <i class="fa-brands fa-windows"></i> Windows Intel / AMD (64-Bit) İndir (.exe)
+          </a>
+          <a href="/downloads/zer-remote-arm64.exe" class="btn btn-dl-secondary btn-block mt-2" download>
+            <i class="fa-solid fa-microchip"></i> Windows ARM (64-Bit) İndir (.exe)
+          </a>
+        </div>
+        <div class="info-alert-box">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Herhangi bir kurulum gerekmez. Dosyayı indirip çift tıklamanız yeterlidir.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-modal-close" id="btn-close-download-modal">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings Options -->
+  <div class="modal-backdrop hidden" id="modal-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <i class="fa-solid fa-gear modal-icon text-cyan"></i>
+        <h3>ZerRemote Ayarları</h3>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label><i class="fa-solid fa-server"></i> Merkezi Sinyalleşme Sunucusu</label>
+          <input type="text" id="setting-server-url" value="https://remote.zersoft.net" placeholder="https://remote.zersoft.net">
+        </div>
+        <div class="form-group">
+          <label><i class="fa-solid fa-film"></i> Yayın Kalitesi / FPS Target</label>
+          <select id="setting-fps-select" class="custom-select">
+            <option value="60">60 FPS (Ultra Akıcı)</option>
+            <option value="30">30 FPS (Standart)</option>
+            <option value="15">15 FPS (Düşük Bant Genişliği)</option>
+          </select>
+        </div>
+        <div class="toggle-option">
+          <label class="toggle-label">
+            <span>Uzak Klavye / Fare Kontrolü (OS Automation)</span>
+            <small>Uzak cihazın gerçek Windows imlecini ve tuşlarını yönlendirir</small>
+          </label>
+          <input type="checkbox" id="setting-os-control" checked>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btn-save-settings">Ayarları Kaydet</button>
+        <button class="btn btn-modal-close" id="btn-close-settings-modal">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Socket.IO Client Library -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Main Application Script -->
+  <script src="app.js?v=2.5.7"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+ZerRemote Icon Assets Directory

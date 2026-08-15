@@ -469,6 +469,8 @@
   // 3. VIEWER CONNECT & WEBRTC CLIENT LOGIC
   // ==========================================================================
 
+  let connectionApprovalTimeout = null;
+
   if (elConnectForm) {
     elConnectForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -498,17 +500,28 @@
         isHost = false;
         saveToRecentDevices(targetId, res.hostDeviceName);
 
-        showToast('Parola doğrulandı. Ev sahibi bilgisayardan onay bekleniyor...', 'info');
+        showToast(`Parola doğrulandı. ${targetId} cihazından onay bekleniyor...`, 'info');
         if (elBtnConnect) {
           elBtnConnect.disabled = true;
           elBtnConnect.innerHTML = '<i class="fa-solid fa-clock fa-spin"></i> Ev Sahibi Onayı Bekleniyor...';
         }
+
+        // 12 Second Approval Timeout Safety
+        if (connectionApprovalTimeout) clearTimeout(connectionApprovalTimeout);
+        connectionApprovalTimeout = setTimeout(() => {
+          if (elBtnConnect && elBtnConnect.disabled) {
+            elBtnConnect.disabled = false;
+            elBtnConnect.innerHTML = '<i class="fa-solid fa-plug"></i> Uzak Masaüstüne Bağlan';
+            showToast('⚠️ Ev sahibi bilgisayardan yanıt alınamadı (Zaman Aşımı). Lütfen Cihaz ID ve Parolasını kontrol edin.', 'warning');
+          }
+        }, 12000);
       });
     });
   }
 
   // Viewer receives approval & opens remote stage view
   socket.on('connection-established', ({ sessionId, hostDeviceName }) => {
+    if (connectionApprovalTimeout) clearTimeout(connectionApprovalTimeout);
     showToast(`${hostDeviceName || 'Uzak Masaüstü'} bağlantısı kabul edildi!`, 'success');
     showRemoteStage(hostDeviceName || 'Uzak Masaüstü');
     if (elBtnConnect) {
@@ -518,6 +531,7 @@
   });
 
   socket.on('connection-rejected', ({ reason }) => {
+    if (connectionApprovalTimeout) clearTimeout(connectionApprovalTimeout);
     showToast(`Bağlantı Reddedildi: ${reason}`, 'error');
     hideRemoteStage();
     if (elBtnConnect) {

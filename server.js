@@ -324,12 +324,12 @@ io.on('connection', (socket) => {
 
   // 9. Real-time Chat Relay
   socket.on('chat-message', ({ sessionId, message, senderName }) => {
-    const session = sessions.get(sessionId);
-    if (session) {
-      io.to(sessionId).emit('chat-message', {
+    const targetRoom = sessionId || socket.sessionId;
+    if (targetRoom) {
+      io.to(targetRoom).emit('chat-message', {
         id: Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         senderId: socket.id,
-        senderName: senderName || (socket.isHost ? 'Ev Sahibi (Host)' : 'Uzak Kullanıcı'),
+        senderName: senderName || 'Kullanıcı',
         message,
         timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
       });

@@ -1006,10 +1006,11 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
       elChatMessages.scrollTop = elChatMessages.scrollHeight;
     }
 
-    // Show unread indicator if drawer closed
-    if (!isMe && elChatDrawer.classList.contains('hidden')) {
-      if (elChatUnreadDot) elChatUnreadDot.classList.remove('hidden');
-      showToast(`Yeni Mesaj (${senderName}): ${message}`, 'info');
+    // Automatically open chat drawer on receiver's screen when message arrives
+    if (!isMe) {
+      if (elChatDrawer) elChatDrawer.classList.remove('hidden');
+      if (elChatUnreadDot) elChatUnreadDot.classList.add('hidden');
+      showToast(`💬 ${senderName}: ${message}`, 'info');
     }
   });
 

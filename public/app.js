@@ -772,7 +772,14 @@ Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue
   socket.on('remote-input', ({ type, data, senderId }) => {
     if (!isHost) return;
 
-    // Trigger local native Windows OS input control via user32.dll
+    // Send input directly to local Windows OS Agent running on http://127.0.0.1:3001
+    fetch('http://127.0.0.1:3001/input', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, data })
+    }).catch(() => {});
+
+    // Fallback for standalone Node environment
     executeLocalWinInput(type, data);
     socket.emit('execute-host-os-input', { type, data });
 

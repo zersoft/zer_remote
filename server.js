@@ -71,10 +71,32 @@ function executeWinOSInput(type, data) {
         psInputWorker.stdin.write(`[WinInput]::keybd_event(${code}, 0, 0, 0)\n`);
       }
     }
+// Local Windows Agent HTTP Endpoint on port 3001 for browser-to-native OS control
+if (process.platform === 'win32') {
+  try {
+    const agentApp = express();
+    agentApp.use(express.json());
+    agentApp.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      if (req.method === 'OPTIONS') return res.sendStatus(200);
+      next();
+    });
+
+    agentApp.post('/input', (req, res) => {
+      const { type, data } = req.body || {};
+      executeWinOSInput(type, data);
+      res.json({ success: true });
+    });
+
+    agentApp.listen(3001, '127.0.0.1', () => {
+      console.log('[WinInput Agent] Local Windows OS Input Agent listening on http://127.0.0.1:3001');
+    });
   } catch (err) {
-    console.error('OS Input execution error:', err);
+    console.warn('Local agent listen failed (port 3001 in use):', err);
   }
 }
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

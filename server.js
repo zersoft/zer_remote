@@ -200,6 +200,10 @@ io.on('connection', (socket) => {
       return callback({ success: false, message: 'Hatalı Parola! Lütfen parolayı tekrar kontrol edin.' });
     }
 
+    if (hostData.socketId === socket.id) {
+      return callback({ success: false, message: 'Kendi cihazınızın ID\'sine bağlanamazsınız! Lütfen bağlanmak istediğiniz başka bir cihazın ID\'sini girin.' });
+    }
+
     const hostSocket = io.sockets.sockets.get(hostData.socketId);
     if (!hostSocket) {
       hosts.delete(hostData.deviceId);
@@ -221,8 +225,8 @@ io.on('connection', (socket) => {
     socket.join(sessionId);
     hostSocket.join(sessionId);
 
-    // Notify Host of connection request (Emits to sessionId room joined by both host and viewer)
-    io.to(sessionId).emit('incoming-connection', {
+    // Notify ONLY the Host of connection request (NOT the viewer!)
+    io.to(hostData.socketId).emit('incoming-connection', {
       sessionId,
       viewerSocketId: socket.id,
       viewerName: viewerName || 'Uzak Kullanıcı'
@@ -244,13 +248,14 @@ io.on('connection', (socket) => {
 
     if (accepted) {
       const hostData = findHostByNormalizedId(session.hostDeviceId);
-      io.to(sessionId).emit('connection-established', {
+      // Notify ONLY the Viewer of approval (NOT back to host!)
+      io.to(session.viewerSocketId).emit('connection-established', {
         sessionId,
         hostDeviceName: hostData ? hostData.deviceName : 'Uzak Masaüstü'
       });
       console.log(`[Session Accepted] ${sessionId}`);
     } else {
-      io.to(sessionId).emit('connection-rejected', {
+      io.to(session.viewerSocketId).emit('connection-rejected', {
         reason: reason || 'Bağlantı isteği ev sahibi tarafından reddedildi.'
       });
       sessions.delete(sessionId);

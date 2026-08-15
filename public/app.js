@@ -718,8 +718,8 @@
       });
     });
 
-    // Mouse Clicks
-    ['mousedown', 'mouseup', 'click', 'dblclick'].forEach(eventType => {
+    // Mouse Down & Mouse Up (Strict Single Press Forwarding)
+    ['mousedown', 'mouseup'].forEach(eventType => {
       elInputCanvas.addEventListener(eventType, (e) => {
         if (!activeSessionId || isHost) return;
         const coords = getNormalizedCoords(e);
